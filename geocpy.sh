@@ -49,13 +49,19 @@ prepareExifTool ()
 #          NAME:  parseInputs
 #   DESCRIPTION:  Check for correctness of the input
 #    PARAMETERS:  Input arguments to the script
-#       RETURNS:  Error if number of parameters does not mach
+#       RETURNS:  Error if number of parameters does not match
+#                 Global variable "nputDir" with folder to process
 #-------------------------------------------------------------------------------
 parseInputs ()
 {
     if [ $# -ne 1 ]; then
         echo $0: usage: geocpy.sh input_dir
         exit 1
+    fi
+    inputDir=$1
+    local len=${#inputDir}
+    if [ "${inputDir:$len-1}" != "/" ]; then
+       inputDir=$inputDir"/" 
     fi
 }	# ----------  end of function parseInputs  ----------
 
@@ -64,21 +70,22 @@ parseInputs $* # verify input
 prepareExifTool # check exiftool
 
 
-inputDir=$1
 JPGS="$inputDir*.jpg" # scan for jpg files
 # iterate over all jpg
 for f in $JPGS
 do
-    echo "Processing $f"
-    # check for dng
-    fileNoPath=$(basename $f) # remove path from file name
-    fileNoExt="${fileNoPath%.*}" # get file name
-    nameDng=$(echo $inputDir$fileNoExt).dng # add initial path and extension of dng
-    echo -n "    Looking for $nameDng"
-    if [ -f $nameDng ]; then # verify if dng exists
-        echo "    Exists"
-        $exifExe -tagsFromFile $f -Location:all $nameDng # transfer geo tags
-    else
-        echo "    Not found"
+    if [[ "$f" != *\.* ]]; then # skip empty list
+        echo "Processing $f"
+        # check for dng
+        fileNoPath=$(basename $f) # remove path from file name
+        fileNoExt="${fileNoPath%.*}" # get file name
+        nameDng=$(echo $inputDir$fileNoExt).dng # add initial path and extension of dng
+        echo -n "    Looking for $nameDng"
+        if [ -f $nameDng ]; then # verify if dng exists
+            echo "    Exists"
+            $exifExe -tagsFromFile $f -Location:all $nameDng # transfer geo tags
+        else
+            echo "    Not found"
+        fi
     fi
 done
